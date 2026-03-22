@@ -96,6 +96,7 @@ p1 = gpremeas_calc_all_all %>%
                            "CF_change_per_year"~"Change in Coarse Fraction Bulk Density",
                            "perC_change_per_year"~"Change in Percent Carbon",
                            "TC_change_per_year"~"Change in Carbon stock")) %>%
+  mutate(Horizon = paste(Horizon, "horizons")) %>%
   ggplot(aes(x = First, y = Second, color = Horizon)) + geom_abline(intercept = 0, slope = 1, linetype = 2) + geom_point() + facet_wrap(Horizon~name, scales = "free", nrow = 4, ncol = 2,dir = "v") + theme_classic() + xlab("First Interval Change (T0 to T1)") + ylab("Second Interval Change (T1 to T2)") + scale_color_manual(name = "Horizon", values = c("grey", "brown"), guide = "none")
 
 # Two NFI plots are dropped from this figure because measurements at time 1 and time 2 are from different microplots, so the paired comparison being conducted is not possible.

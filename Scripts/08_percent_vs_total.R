@@ -10,7 +10,7 @@ library(tidyverse)
 source("Scripts/00_load_data.R")
 source("Scripts/99_functions.R")
 
-R2 = tibble(Horizon = c("Mineral", "Organic"),
+R2 = tibble(Horizon = c("Mineral horizons", "Organic horizons"),
             R2 = c(
               MuMIn::r.squaredGLMM(nlme::lme(TC~perC,random = ~1|nfi_plot, data = gpremeas %>%
                                                filter(meas_num < 3) %>% filter(Horizon == "Mineral")))[1,"R2m"],
@@ -24,6 +24,7 @@ R2 = tibble(Horizon = c("Mineral", "Organic"),
 p2 = gpremeas %>%
   filter(meas_num < 3) %>%
   mutate(meas_num = paste(meas_num-1)) %>%
+  mutate(Horizon = paste(Horizon, "horizons")) %>%
   ggplot() +
   geom_point(aes(x = perC, y = TC, color = Horizon, shape = meas_num)) +
   facet_wrap(.~Horizon, scales = "free", nrow = 2) +
@@ -64,7 +65,7 @@ change_result = gpremeas %>%
 
 # Percent carbon ------
 
-R2 = tibble(Horizon = c("Mineral", "Organic"),
+R2 = tibble(Horizon = c("Mineral horizons", "Organic horizons"),
             R2 = c(
               MuMIn::r.squaredGLMM(nlme::lme(Change_TC~Change_perC,random = ~1|nfi_plot, data = change_result %>% filter(Horizon == "Mineral")))[1,"R2m"],
               MuMIn::r.squaredGLMM(nlme::lme(Change_TC~Change_perC,random = ~1|nfi_plot, data = change_result%>% filter(Horizon == "Organic")))[1,"R2m"]
@@ -75,6 +76,7 @@ R2 = tibble(Horizon = c("Mineral", "Organic"),
 
 png("Plots/Figure9.png", width = 4, height = 6, units = "in", res = 600)
 change_result %>%
+  mutate(Horizon = paste(Horizon, "horizons")) %>%
   ggplot() +
   geom_vline(xintercept = 0, linetype = 2) +
   geom_hline(yintercept = 0, linetype = 2) +
@@ -89,7 +91,7 @@ dev.off()
 
 # Change result:
 
-R2 = tibble(Horizon = c("Mineral", "Organic"),
+R2 = tibble(Horizon = c("Mineral horizons", "Organic horizons"),
             R2 = c(
               MuMIn::r.squaredGLMM(nlme::lme(Change_TC~Change_BD,random = ~1|nfi_plot, data = change_result %>% filter(Horizon == "Mineral")))[1,"R2m"],
               MuMIn::r.squaredGLMM(nlme::lme(Change_TC~Change_BD,random = ~1|nfi_plot, data = change_result%>% filter(Horizon == "Organic")))[1,"R2m"]
@@ -100,6 +102,7 @@ R2 = tibble(Horizon = c("Mineral", "Organic"),
 
 png("Plots/FigureS3_change_BD.png", width = 4, height = 6, units = "in", res = 600)
 change_result %>%
+  mutate(Horizon = paste(Horizon, "horizons")) %>%
   ggplot() +
   geom_vline(xintercept = 0, linetype = 2) +
   geom_hline(yintercept = 0, linetype = 2) +

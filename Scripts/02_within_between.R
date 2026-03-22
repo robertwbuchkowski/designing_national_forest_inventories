@@ -10,33 +10,6 @@ library(tidyverse)
 source("Scripts/00_load_data.R")
 source("Scripts/99_functions.R")
 
-# Create a data frame of change:
-gpremeas_calc_all = gpremeas %>%
-  # Some sites have been sampled 3 times (i.e., 2003, 2013, 2023). Let's get rid of these data for now so we only have ~10 year time steps.
-  filter(meas_num < 3) %>%
-  group_by(nfi_plot, pit_num, Horizon) %>%
-  arrange(meas_date, .by_group = TRUE) %>%
-  summarise(
-    first_date = first(meas_date),
-    last_date = last(meas_date),
-    first_TC = first(TC),
-    last_TC = last(TC),
-    first_perC = first(perC),
-    last_perC = last(perC),
-    first_BD = first(BD),
-    last_BD = last(BD),
-    first_CF = first(CF),
-    last_CF = last(CF),
-    years_diff = as.numeric(difftime(last_date, first_date, units = "days")) / 365.25,
-    Change_TC = (last_TC - first_TC) / years_diff*10,
-    Change_perC = (last_perC - first_perC) / years_diff*10,
-    Change_BD = (last_BD - first_BD) / years_diff*10,
-    Change_CF = (last_CF - first_CF) / years_diff*10,
-    .groups = "drop"
-  ) %>%
-  filter(years_diff > 0)
-
-
 # Calculate the total numbers included:
 gpremeas_calc_all %>% group_by(nfi_plot, Horizon) %>% count() %>% group_by(Horizon) %>% count()
 
@@ -51,10 +24,11 @@ cowplot::plot_grid(
     group_by(nfi_plot, Horizon) %>%
     summarize(first_TC = mean(first_TC),
               Change_TC = mean(Change_TC)) %>%
+    mutate(Horizon = paste(Horizon, "horizons")) %>%
     ggplot(aes(x = first_TC, y = Change_TC)) +
     geom_hline(yintercept = 0, linetype = 2) +
     geom_point(aes(color = Horizon)) +
-    facet_wrap(.~Horizon) + theme_classic() + scale_color_manual(name = "Horizon", values = c("grey", "brown")) +
+    facet_wrap(.~Horizon) + theme_classic() + scale_color_manual(name = "Horizons", values = c("grey", "brown"), guide = "none") +
     stat_smooth(method = "lm", color = "black") + ylab(expression(Change~"in"~carbon~stock~(Mg~ha^-1~10~yr^-1))) + xlab(expression(t[0]~carbon~stock~(Mg~ha^-1))),
 
   gpremeas_calc_all %>%
@@ -64,13 +38,29 @@ cowplot::plot_grid(
               last_TC = mean(calc_last_TC),
               Change_TC = mean(Change_TC)) %>%
     mutate(average_TC = (first_TC + last_TC)/2) %>%
+    mutate(Horizon = paste(Horizon, "horizons")) %>%
     ggplot(aes(x = average_TC, y = Change_TC)) +
     geom_hline(yintercept = 0, linetype = 2) +
     geom_point(aes(color = Horizon)) +
-    facet_wrap(.~Horizon) + theme_classic() + scale_color_manual(name = "Horizon", values = c("grey", "brown")) +
+    facet_wrap(.~Horizon) + theme_classic() + scale_color_manual(name = "Horizons", values = c("grey", "brown"), guide = "none") +
     stat_smooth(method = "lm", color = "black") + ylab(expression(Change~"in"~carbon~stock~(Mg~ha^-1~10~yr^-1))) + xlab(expression(Average~t[0]~"&"~t[1]~carbon~stock~(Mg~ha^-1))),
   nrow = 2, labels = "AUTO"
 )
+dev.off()
+
+png("Plots/Figure_date_sampled.png", width = 8, height = 4, units = "in", res = 600)
+gpremeas_calc_all %>%
+  group_by(nfi_plot, Horizon) %>%
+  summarize(Date = min(first_date),
+            TC = mean(first_TC)) %>%
+  bind_rows(
+    gpremeas_calc_all %>%
+      group_by(nfi_plot, Horizon) %>%
+      summarize(Date = min(last_date),
+                TC = mean(last_TC))
+  ) %>%
+  mutate(Month = month(Date, label =T)) %>%
+  ggplot(aes(x = Month, y = TC, color = Horizon)) + geom_boxplot() + ylab(expression(Carbon~stock~(Mg~ha^-1))) + scale_color_manual(name = "Horizons", values = c("grey", "brown")) + theme_classic()
 dev.off()
 
 # Produce a data frame of the within and between variations for plotting:
@@ -154,24 +144,28 @@ cowplot::plot_grid(
   sumdata %>%
     filter(name != "Mean") %>%
     filter(!grepl("Change", Type)) %>%
+    mutate(Horizon = paste(Horizon, "horizons")) %>%
     ggplot(aes(x = interaction(Time, name, sep = "\n"), y = value, fill = Horizon)) + geom_bar(stat = "identity", position = "dodge") + theme_classic() +
     ylab("Standard deviation (bar) or Mean (line)") + xlab("") + facet_wrap(.~interaction(Horizon, Type, sep = "\n"), scales = "free_y", nrow = 4, ncol = 2, dir = "h") + scale_fill_manual(name = "Horizon", values = c("grey", "brown"), guide = "none") + scale_color_manual(name = "Horizon", values = c("grey", "brown"), guide = "none") + scale_linetype_manual(name = "Measurement", values = c(2,3), guide = "none") +
     geom_hline(
       aes(yintercept = value, linetype = Time),data = sumdata %>%
         filter(name == "Mean") %>%
         filter(!grepl("Change", Type)) %>%
-        mutate(LocX = ifelse(Horizon == "Mineral", 1.5, 3.5)) %>%
+        mutate(Horizon = paste(Horizon, "horizons")) %>%
+        mutate(LocX = ifelse(Horizon == "Mineral horizons", 1.5, 3.5)) %>%
         mutate(LocX = ifelse(!grepl("Change", Type),
                              ifelse(Time == "First", LocX - 0.02, LocX + 0.02), LocX))),
 
   sumdata %>%
     filter(name != "Mean") %>%
     filter(grepl("Change", Type)) %>%
+    mutate(Horizon = paste(Horizon, "horizons"))%>%
     ggplot(aes(x = interaction(name, sep = "\n"), y = value, fill = Horizon)) + geom_bar(stat = "identity", position = "dodge") + theme_classic() +
     ylab("") + xlab("") + facet_wrap(.~interaction(Horizon, Type, sep = "\n"), scales = "free_y", nrow = 4, ncol = 2, dir = "h") + scale_fill_manual(name = "Horizon", values = c("grey", "brown"), guide = "none") + scale_color_manual(name = "Horizon", values = c("grey", "brown"), guide = "none") + scale_linetype_manual(name = "Measurement", values = c(2,3)) +
     geom_hline(
       aes(yintercept = value), linetype = 2, data = sumdata %>%
         filter(name == "Mean") %>%
+        mutate(Horizon = paste(Horizon, "horizons"))%>%
         filter(grepl("Change", Type))), rel_widths = c(1,1)
 )
 dev.off()

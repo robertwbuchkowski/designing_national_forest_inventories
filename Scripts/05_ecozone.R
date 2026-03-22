@@ -240,6 +240,7 @@ forplot = forplot %>%
 
 png("Plots/Figure5.png", width = 9, height = 4, units = "in", res = 600)
 forplot %>%
+  mutate(Horizon = paste(Horizon, "horizons")) %>%
   ggplot(aes(x = FL, y = value, fill = Horizon)) + geom_bar(stat = "identity") + theme_classic() + geom_pointrange(aes(y = mean, ymin = ymin, ymax = ymax)) +
-  ylab("Standard deviation") + xlab("Ecozone") + facet_wrap(.~interaction(name, Horizon, sep = " "), scales = "free_y", nrow = 4, ncol = 2, dir = "h") + scale_fill_manual(name = "Horizon", values = c("grey", "brown"), guide = F)
+  ylab("Standard deviation") + xlab("Ecozone") + facet_wrap(.~interaction(name, Horizon, sep = " "), scales = "free_y", nrow = 4, ncol = 2, dir = "h") + scale_fill_manual(name = "Horizon", values = c("grey", "brown"), guide = "none")
 dev.off()

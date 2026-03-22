@@ -159,9 +159,10 @@ DHARMa::testCategorical(simres, catPred = curdata$meas_num)
 
 pp1 = alldata %>%
   filter(name == param) %>%
+  mutate(Horizon = paste(Horizon, "horizons")) %>%
   ggplot(aes(fill = Horizon)) + facet_wrap(.~Horizon, scales = "free_y", nrow = 4, ncol = 2, dir = "v") + geom_boxplot(aes(x = paste0(N), y = value))  +
   stat_summary(aes(x = paste0(N), y = value), fun = mean, geom = "point",
-               color = "black",fill = "cyan", size = 3, shape = 23) + theme_classic() + theme(legend.position = "none") + ylab(param) + xlab("Microplots") + scale_fill_manual(name = "Horizon", values = c("grey", "brown")) + geom_text(data = tibble(x = 1.5, y = c(150, 200), Horizon = c("Mineral", "Organic"), txt = c("Microplots*\nMeasurement*", "ns")), aes(label = txt, x=x,y=y)) + ylab(expression(Carbon~stock~(Mg~ha^-1)))
+               color = "black",fill = "cyan", size = 3, shape = 23) + theme_classic() + theme(legend.position = "none") + ylab(param) + xlab("Microplots") + scale_fill_manual(name = "Horizon", values = c("grey", "brown")) + geom_text(data = tibble(x = 1.5, y = c(150, 200), Horizon = c("Mineral horizons", "Organic horizons"), txt = c("Microplots*\nMeasurement*", "ns")), aes(label = txt, x=x,y=y)) + ylab(expression(Carbon~stock~(Mg~ha^-1)))
 
 png("Plots/Figure7.png", width = 6, height = 4, units = "in", res = 600)
 pp1

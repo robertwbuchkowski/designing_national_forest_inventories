@@ -38,7 +38,7 @@ MDD_spatial <-
 plot_spatial <- MDD_spatial %>%
   mutate(label = "MDD with Carbon stock spatial variation") %>%
   ggplot(aes(
-    x = paste0(soil, "\n(Time - ", as.factor(Time-1), ")"),
+    x = paste0(soil,"\nhorizons", "\n(Time - ", as.factor(Time-1), ")"),
     y = MDD_pop_alpha_power,
     fill = soil
   )) +
@@ -84,7 +84,7 @@ MDD_temporal <-   rbind( mdc_pop_full_yr(Mgpremeas %>% filter(meas_num != 3),
 # Plot (temporal)
 plot_temp <- MDD_temporal %>%
   mutate(label = "MDD with Carbon Stock Change") %>%
-  ggplot(aes(x = soil, y = MDD_horizon_a_p, fill = soil)) +
+  ggplot(aes(x = paste0(soil, "\nhorizons"), y = MDD_horizon_a_p, fill = soil)) +
   geom_col(color = "black") +
   facet_grid(~ label) +
   scale_fill_manual(name = "Horizon",
@@ -119,6 +119,121 @@ MDD_spatial %>% dplyr::select(MDD_pop_alpha_power, soil)
 plot_spatial + plot_temp
 
 ggsave("Plots/03_MDC_temporal_spatial.png", width = 9, height = 4)
+
+# Sensitivity analysis:
+
+powerlevels = c(0.6, 0.7, 0.8, 0.9)
+siglevels = c(0.001, 0.01, 0.05, 0.1, 0.15)
+
+# Spatial
+
+resvec = vector('list', length(siglevels))
+
+for(i in 1:length(resvec)){
+  resvec[[i]] = rbind(
+    mdc_from_bwvr(bwvr_min_1, alpha = siglevels[i]) %>% mutate(soil = "Mineral", Time = 1),
+    mdc_from_bwvr(bwvr_min_2, alpha = siglevels[i]) %>% mutate(soil = "Mineral", Time = 2),
+    mdc_from_bwvr(bwvr_org_1, alpha = siglevels[i]) %>% mutate(soil = "Organic", Time = 1),
+    mdc_from_bwvr(bwvr_org_2, alpha = siglevels[i]) %>% mutate(soil = "Organic", Time = 2)) %>%
+    mutate(siglevel = siglevels[i])
+}
+
+plot_spatial_alpha = do.call("rbind", resvec) %>%
+  ggplot(aes(x = siglevel, y = MDD_pop_alpha_power, color = soil, linetype = paste(Time), group = paste0(soil, Time))) + geom_line() + theme_classic() +
+  scale_color_manual(name = "Horizon",
+                     values = c("grey", "brown")) +
+  scale_linetype_discrete(name = "Time") +
+  labs(x = expression(alpha), y = expression(MDD~(Mg~C~ha^-1)))
+
+resvec = vector('list', length(powerlevels))
+
+for(i in 1:length(resvec)){
+  resvec[[i]] = rbind(
+    mdc_from_bwvr(bwvr_min_1, power = powerlevels[i]) %>% mutate(soil = "Mineral", Time = 1),
+    mdc_from_bwvr(bwvr_min_2, power = powerlevels[i]) %>% mutate(soil = "Mineral", Time = 2),
+    mdc_from_bwvr(bwvr_org_1, power = powerlevels[i]) %>% mutate(soil = "Organic", Time = 1),
+    mdc_from_bwvr(bwvr_org_2, power = powerlevels[i]) %>% mutate(soil = "Organic", Time = 2)) %>%
+    mutate(power = powerlevels[i])
+}
+
+plot_spatial_power = do.call("rbind", resvec) %>%
+  ggplot(aes(x = power, y = MDD_pop_alpha_power, color = soil, linetype = paste(Time), group = paste0(soil, Time))) + geom_line() + theme_classic() +
+  scale_color_manual(name = "Horizon",
+                     values = c("grey", "brown")) +
+  scale_linetype_discrete(name = "Time") +
+  labs(x = "Power", y = expression(MDD~(Mg~C~ha^-1)))
+
+
+# Temporal
+
+resvec = vector('list', length(siglevels))
+
+for(i in 1:length(resvec)){
+  resvec[[i]] = rbind( mdc_pop_full_yr(Mgpremeas %>% filter(meas_num != 3),
+                                       unit_col   = "nfi_plot",
+                                       time_col   = "meas_num",
+                                       date_col   = "meas_date",
+                                       value_col  = "TC",
+                                       repl_col   = "pit_num"    ,
+                                       alpha = siglevels[i],
+                                       power = 0.80,
+                                       horizon_years = 10)  %>% mutate(soil = "Mineral", Time = "Temporal"),
+                       mdc_pop_full_yr(Ogpremeas %>% filter(meas_num != 3),
+                                       unit_col   = "nfi_plot",
+                                       time_col   = "meas_num",
+                                       date_col   = "meas_date",
+                                       value_col  = "TC",
+                                       repl_col   = "pit_num",
+                                       alpha = siglevels[i],
+                                       power = 0.80,
+                                       horizon_years = 10)  %>% mutate(soil = "Organic", Time = "Temporal")
+  ) %>%
+    mutate(siglevel = siglevels[i])
+}
+
+plot_temporal_alpha = do.call("rbind", resvec) %>%
+  ggplot(aes(x = siglevel, y = MDD_horizon_a_p, color = soil)) + geom_line() + theme_classic() +
+  scale_color_manual(name = "Horizon",
+                     values = c("grey", "brown")) +
+  labs(x = expression(alpha), y = expression(MDD~(Mg~C~ha^-1~10~yr^-1)))
+
+resvec = vector('list', length(powerlevels))
+
+for(i in 1:length(resvec)){
+  resvec[[i]] = rbind( mdc_pop_full_yr(Mgpremeas %>% filter(meas_num != 3),
+                                       unit_col   = "nfi_plot",
+                                       time_col   = "meas_num",
+                                       date_col   = "meas_date",
+                                       value_col  = "TC",
+                                       repl_col   = "pit_num"    ,
+                                       alpha = 0.05,
+                                       power = powerlevels[i],
+                                       horizon_years = 10)  %>% mutate(soil = "Mineral", Time = "Temporal"),
+                       mdc_pop_full_yr(Ogpremeas %>% filter(meas_num != 3),
+                                       unit_col   = "nfi_plot",
+                                       time_col   = "meas_num",
+                                       date_col   = "meas_date",
+                                       value_col  = "TC",
+                                       repl_col   = "pit_num",
+                                       alpha = 0.05,
+                                       power = powerlevels[i],
+                                       horizon_years = 10)  %>% mutate(soil = "Organic", Time = "Temporal")
+  ) %>%
+    mutate(power = powerlevels[i])
+}
+
+plot_temporal_power = do.call("rbind", resvec) %>%
+  ggplot(aes(x = power, y = MDD_horizon_a_p, color = soil)) + geom_line() + theme_classic() +
+  scale_color_manual(name = "Horizon",
+                     values = c("grey", "brown")) +
+  labs(x = "Power", y = expression(MDD~(Mg~C~ha^-1~10~yr^-1)))
+
+
+plot_spatial_alpha + plot_spatial_power + plot_temporal_alpha + plot_temporal_power
+
+
+ggsave("Plots/FigS0_sensitivity.png", width = 6, height = 5)
+
 
 # Calculate the total change that could be detected:
 
